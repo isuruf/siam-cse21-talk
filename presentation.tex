@@ -621,14 +621,16 @@ Cost: $\mathcal{O}(p^{2d})$
 \begin{frame}[fragile]{Compressed Multipole and Taylor Expansions}
  
  \begin{table}[]
-\begin{tabular}{|L|c|c|c|c|c|c|c|}
-\hline & P2L & P2M & M2M & M2L & L2L & L2P & M2P \\ \hline
-Taylor Series            & $p^3$     & $p^3$ & $p^{6}$   & $p^{6}$   & $p^{6}$   & $p^{3}$ & $p^{3}$\\ \hline
-Compressed Taylor & $p^{2}$ & $p^3$ & $p^{5}$ & $p^{4}$ & $p^{5}$ & $p^{3}$ & $p^{2}$\\ \hline
-Laplace ($Y^n_m$ / Point-shoot) & $p^2$ & $p^2$ & $p^3$ & $p^3$ & $p^3$ & $p^2$ & $p^2$\\ \hline
-\end{tabular}
-  \caption{Time complexities for expansions, translations and evaluations} \label{tab:compressed}
-\end{table}
+ \scriptsize
+ \begin{tabular}{|L|c|c|c|c|c|c|c|}
+ \hline                          & P2L      & P2M   & M2M          & M2L            & L2L       & L2P     & M2P \\ \hline
+ Taylor Series                   & $p^3$    & $p^3$ & $p^{6}$      & $p^{6}$        & $p^{6}$   & $p^{3}$ & $p^{3}$\\ \hline
+ Improved Taylor Series          & $p^3$    & $p^3$ & $p^{4}$      & $p^{3}\log(p)$ & $p^{4}$   & $p^{3}$ & $p^{3}$\\ \hline
+ Compressed Taylor Series        & $p^{2}$  & $p^3$ & $p^{3}$      & $p^2\log(p)$   & $p^{3}$   & $p^{3}$ & $p^{2}$\\ \hline
+ Spherical Harmonic Series       & $p^2$    & $p^2$ & $p^2\log(p)$ & $p^2\log(p)$   & $p^2\log(p)$   & $p^2$   & $p^2$\\ \hline
+ \end{tabular}
+   \caption{Time complexities for expansions, translations and evaluations} \label{tab:compressed}
+ \end{table}
 
 All operations are exact except for M2M in Compressed Taylor.
 Point-shoot method uses Spherical Harmonics for expansion instead of a Taylor series. 
