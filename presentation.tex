@@ -34,7 +34,6 @@
   \item Introduction to Multipole and Local expansions
   \item Compressed Taylor Series based Multipole and Local expansions
   \item Results - Accuracy and Time complexity
-  \item Running on GPUs
  \end{itemize}
 
 \end{frame}
@@ -672,32 +671,6 @@ Credits: Andreas Kl{\"o}eckner, Symbolic Computation for Layer Potential Evaluat
 \includegraphics[scale=0.3]{figures/flops-laplace-M2M-3d.pdf}
 \includegraphics[scale=0.3]{figures/flops-laplace-M2P-3d.pdf}
 \includegraphics[scale=0.3]{figures/flops-laplace-P2M-3d.pdf}
-\end{figure}
-\end{frame}
-
-\begin{frame}[fragile]{Running on GPUs}
-Running multipole forming, translations and evaluations on GPUs.
-\begin{itemize}
- \item Runs out of registers to store the Taylor coefficients.
- \item Tile the computation to achieve upto 10x speedup
-\end{itemize}
-
- Experiments were run to measure performance of multipole forming (P2M).
- There were run on a Titan V GPU with a peak of 6144 GFLOPs/s.
- 
- P2M kernels for Laplace have only 1/3 FMA instructions $\implies$ maximum is around 4096 GFLOPs/s.
-\end{frame}
-
-\begin{frame}[fragile]{Running on GPUs}
-
- Preliminary results on a Titan V GPU with peak 6144 GFLOPS/s.
-\begin{figure}
-\includegraphics[scale=0.28]{figures/perf-laplace-2d.pdf}
-\includegraphics[scale=0.28]{figures/perf-laplace-3d.pdf}
-\includegraphics[scale=0.28]{figures/perf-helmholtz-2d.pdf}
-\includegraphics[scale=0.28]{figures/perf-helmholtz-3d.pdf}
-
-Credits: Andreas Kl{\"o}eckner, CSE 2019
 \end{figure}
 \end{frame}
 
