@@ -1,4 +1,4 @@
-\documentclass[10pt]{beamer}
+\documentclass[10pt,usenames,dvipsnames]{beamer}
 
 \usetheme[progressbar=frametitle]{metropolis}
 \usepackage{graphicx}
@@ -11,7 +11,6 @@
 \usepackage{pgfplots}
 \usepackage{tikz}
 \usepgfplotslibrary{dateplot}
-
 \usepackage{xspace}
 \newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
 \usepackage{biblatex}
@@ -31,17 +30,17 @@
 
 \begin{frame}[fragile]{Outline}
  \begin{itemize}
-  \item Introduction to Multipole and Local expansions
-  \item Compressed Taylor Series based Multipole and Local expansions
-  \item Results - Accuracy and Time complexity
+  \item Quick introduction to Taylor series based Fast Multipole Method
+  \item Compressed Taylor Series based expansions and translations
+  \item Results - accuracy and time complexity
  \end{itemize}
 
 \end{frame}
 
 \begin{frame}[fragile]{N-body problem}
-Let $\b s$ be sources and $\b t$ be targets. Potential at target $\b t_i$ is the sum of all potentials from the sources $\b s$ given by,
-\[\psi(\b t, \b s)_i =  \sum_{j} G(t_i, s_j).\]
-For example, \[G(t_i, s_j) = \frac{1}{\text{dist}(t_i, s_j)}.\]
+Let $(\b s_j)_{j=1}^{n}$ be sources and $(\b t_i)_{i=1}^{n}$ be targets. Potential at target $\b t_i$ is the sum of all potentials from the sources $\b s_j$ given by,
+\[\sum_{j} \psi(\b t_i, \b s_j).\]
+For example, \[\psi(\b t_i, \b s_j) = \frac{1}{\text{dist}(\b t_i, \b s_j)}.\]
 \begin{center}
 \begin{tikzpicture}[x=1cm,y=0.4cm]
 \foreach \Point in {(-2,1.5), (-1,1), (-1.5, 2), (-2,3), (-1,2.5)}{
@@ -58,191 +57,22 @@ For example, \[G(t_i, s_j) = \frac{1}{\text{dist}(t_i, s_j)}.\]
 \draw[->] (-0.8,2.4) -- (2.8,1.5);
 \end{tikzpicture}
 \end{center}
-If the number of sources are $S$ and number of targets are $T$ then,
-calculating the potential of all targets takes $\mathcal{O}(S T)$ time.
+
+$n$ sources and $n$ targets $\implies$  $\mathcal{O}(n^2)$ cost.
 
 \end{frame}
 
-\begin{frame}[fragile]{Solving PDEs}
- Some partial differential equations can be turned into an N-body problem.
- For example, \[G(t_i, s_j) = \frac{1}{\text{dist}(t_i, s_j)}.\]
- satisfies,
- \[
-  \Delta G(t, s) = \delta(t - s)
- \]
- and therefore,
- \[
-  \Delta (G * f) = f(t)
- \]
- which means $G * f$ is a solution to,
- \[
-  \Delta u = f
- \]
+\begin{frame}[fragile]{Fast Multipole Method}
 
- Calculating $G * f$ is a N-body problem and therefore solving a partial differential can be reduced to a N-body problem.
-
-
-\end{frame}
-
-
-\begin{comment}
-\begin{frame}[fragile]{Notation}
-Let $p = (p_1, p_2, \ldots p_n)$ be a multi-index where $p_1, p_2, \ldots p_n$ are non-negative integers.
-
-Properties:
+Algorithm by Greengard and Rokhlin (1987) to compute the potentials in $\mathcal{O}(n)$ time.
+\begin{figure}
+\includegraphics[scale=0.15]{figures/quadtree.png}
+\caption{Carrier et al, 1988}
+\end{figure}
+Useful for solving PDE BVPs with Integral equation methods via layer potentials.
 \[
- |p| = p_1 + p_2 + \cdots p_n
+    \int_{\Gamma} G(x - y) \sigma_y dy.
 \]
-\[
- p \le q \implies \forall i, p_i \le q_i
-\]
-\[
- r = p + q \implies \forall i, r_i = p_i + q_i
-\]
-\[
- x^p = x_1^{p_1} x_2^{p_2} \ldots x_n^{p_n}
-\]
-\[
- D_x^p = \frac{\partial^{|p|}}{\partial x_1^{p_1} \partial x_2^{p_2} \ldots \partial x_n^{p_n}}
-\]
-\[
- p! = p_1! p_2! \ldots p_n!
-\]
-\[
- \binom{p}{q} = \binom{p_1}{q_1} \binom{p_2}{q_2} \cdots \binom{p_n}{q_n}
-\]
-
-\end{frame}
-\end{comment}
-
-\begin{frame}[fragile]{Local Expansion}
-Potential function $\psi(t, s)$ can be written as a Taylor expansion.
-
-\[
- \psi(\b t, \b s) = \sum_{|m| \le p} \underbrace{\frac{D_{\b t}^m \psi(\b t, \b s)\Bigr|_{\b t = \b c}}{m!}}_{\text{depends on src/ctr}} \underbrace{(\b t - \b c)^m}_{\text{depends on tgt/ctr}}
-\]
-%\begin{align*}
-% \sum_{y} \psi(\b x, \b y) &=  \sum_{y} \sum_{|p| \le k} \frac{D_{\b x}^p \psi(\b x, \b y)%\Bigr|_{\b x = \b c}}{p!} (\b x - \b c)^p \\
-% &=  \sum_{|p| \le k} \left(\sum_{y} \frac{D_{\b x}^p \psi(\b x, \b y)\Bigr|_{\b x = \b c}}{p!}\right) (\b x - \b c)^p
-%\end{align*}
-\pause
-
-In 2D, this is,
-\begin{align*}
- \psi(\b t, \b s) &= \psi(\b c, \b s) + \psi_x(\b c, \b s)\b h^{(1, 0)} + \psi_y(\b c, \b s)\b h^{(0, 1)} +
-\frac{\psi_{xx}(\b c, \b s)}{2!}\b h^{(2, 0)} + \\ & \frac{\psi_{yy}(\b c, \b s)}{2!}(\b c, \b s)\b h^{(0, 2)} + 2 \frac{\psi_{xy}(\b c, \b s)}{2!}(\b c, \b s)\b h^{(1, 1)} + \cdots
-\end{align*}
-
-Here,
-\[
- \b h^{(a, b)} = (\b t_{[0]}-\b c_{[0]})^a (\b t_{[1]}-\b c_{[1]})^b 
-\]
-
-\end{frame}
-
-\begin{frame}[fragile]{Local Expansion}
-
-Coefficients can be computed in $\mathcal{O}(S p^d)$ time where $p$ is the order of the Taylor series and $d$ is the number of dimensions.
-
-Sum can be calculated in $\mathcal{O}(T p^d)$ time.
-
-Cost of the algorithm is $\mathcal{O}(S p^d) + \mathcal{O}(T p^d)$ instead of $\mathcal{O}(S T)$ for calculating the interaction directly.
-
-\end{frame}
-
-\begin{frame}[fragile]{Local Expansion}
-
-Error term in Taylor expansion for Laplace 3D is,
-\[
- \sum_{|m| = p+1} \frac{D_{\b t}^m \psi(\b t, \b s)\Bigr|_{\b t = \b c'}}{m!} (\b t - \b c)^m
-\]
-\[
-  \approx \sum_{|m| = p+1} K_m \left(\frac{\b t - \b c}{\b s-\b c}\right)^{m}
-\]
-
-It's convergent if all sources are outside the circle around targets.
-
-\begin{center}
-\begin{tikzpicture}[x=1cm,y=0.4cm]
-
-\foreach \Point in {(-2,1.5), (-1,1), (-1.5, 2), (-2,3), (-1,2.5)}{
-    \draw \Point node[anchor=center,fill=black!40!green,circle,scale=0.6] {};
-}
-
-\foreach \Point in {(3,1.5), (4,1), (3.5,3), (4,2.5), (4.4, 2.0)}{
-    \draw \Point node[anchor=center,fill=red,circle,scale=0.6] {};
-}
-
-\draw (3.5, 2.0) circle (1cm) node[below] {$\b c$};
-
-\draw[->] (-1,2) -- node[below] {$R$} (3.5,2.0);
-\draw[->] (3.5,2.0) -- node[below] {$r$} (4.4,2.9) ;
-\node at (-1.5,-1.5) {sources};
-\node at (3.5,-1.5) {targets};
-\end{tikzpicture}
-\end{center}
-
-
-\end{frame}
-
-\begin{comment}
-\begin{frame}[fragile]{Taylor Expansion}
-
-\begin{center}
-\begin{tikzpicture}[x=1cm,y=0.4cm]
-\foreach \Point in {(0,0), (1, 1), (-0.5, -1.5), (-0.5, 1.5), (1.0, -1.5)}{
-    \draw \Point node[anchor=center,fill=black!40!green,circle,scale=0.6] {};
-}
-
-\foreach \Point in {(-2,-2), (-1.5,-2.5), (-0.5,-5), (-0.7,-4.5), (0.5,5), (-2, 3), (2, -3), (1.5, -3.5), (2, 2)}{
-    \draw \Point node[anchor=center,fill=red,circle,scale=0.6] {};
-}
-
-\draw (-1.7, -2) circle (0.5cm) node[above] {$\boldsymbol{c}_0$};
-\draw (-0.5, -5) circle (0.4cm) node[below] {$\boldsymbol{c}_1$};
-\draw (1.7, -3.3) circle (0.5cm) node[below] {$\boldsymbol{c}_2$};
-\end{tikzpicture}
-\end{center}
-Not $\mathcal{O}(S K + K T)$
-\end{frame}
-\end{comment}
-
-\begin{frame}[fragile]{Multipole Expansion}
-Taylor expansion is,
-\[
- \psi(\b t, \b s) = \sum_{|m| \le k} \underbrace{\frac{D_{\b t}^m \psi(\b t, \b s)\Bigr|_{\b t = \b c}}{m!}}_{\text{depends on src/ctr}} \underbrace{(\b t - \b c)^m}_{\text{depends on tgt/ctr}}
-\]
-
-Changing the variable of differentiation, we get multipole expansion,
-\[
- \psi(\b t, \b s) = \sum_{|m| \le k} \underbrace{\frac{D_{\b s}^m \psi(\b t, \b s)\Bigr|_{\b s = \b c}}{m!}}_{\text{depends on tgt/ctr}} \underbrace{(\b s - \b c)^m}_{\text{depends on src/ctr}}
-\]
-\end{frame}
-
-
-\begin{frame}[fragile]{Multipole Expansion}
-
-\begin{center}
-\begin{tikzpicture}[x=1cm,y=0.4cm]
-\foreach \Point in {(0,0), (1, 1), (-0.5, -1.5), (-0.5, 1.5), (1.0, -1.5)}{
-    \draw \Point node[anchor=center,fill=black!40!green,circle,scale=0.6] {};
-}
-
-\foreach \Point in {(-2,-2), (-1.5,-2.5), (-0.5,-5), (-0.7,-4.5), (0.5,5), (-2, 3), (2, -3), (1.5, -3.5), (2, 2)}{
-    \draw \Point node[anchor=center,fill=red,circle,scale=0.6] {};
-}
-
-\draw (0.2, 0) circle (1.1cm) node[above] {$\boldsymbol{c}_0$};
-
-\draw[->] (0.2,0) -- node[below] {$R$} (1.3,0);
-\draw[->] (0.2,0) -- node[below] {$r$} (1.4,-3.3) ;
-\end{tikzpicture}
-\end{center}
-
-Error for the multipole expansion is \[
-  \sum_{|m| = p+1} K_m \left(\frac{\b s - \b c}{\b t-\b c}\right)^{m}
-\]
-and the expansion is convergent if all targets are outside the circle.
 \end{frame}
 
 %\begin{frame}[fragile]{Multipole Expansion}
@@ -342,17 +172,62 @@ and the expansion is convergent if all targets are outside the circle.
 %Multipole expansion around center $\b c_2$.
 %\end{frame}
 
-\begin{frame}[fragile]{Compressed Multipole Expansion}
- For 2D Helmholtz equation we have,
+
+ \begin{frame}[fragile]{Taylor Series based FMM}
+ 
+ Local expansion:
  \[
-  \psi_{x x} + \psi_{y y} + \kappa^2 \psi = 0
+  \psi(\b t, \b s) = \sum_{|m| \le k} \underbrace{\frac{D_{\b t}^m \psi(\b t, \b s)\Bigr|_{\b t = \b c}}{m!}}_{\text{depends on src/ctr}} \underbrace{(\b t - \b       c)^m}_{\text{depends on tgt/ctr}}
+ \]
+ 
+ Multipole expansion:
+ \[
+  \psi(\b t, \b s) = \sum_{|m| \le k} \underbrace{\frac{D_{\b s}^m \psi(\b t, \b s)\Bigr|_{\b s = \b c}}{m!}}_{\text{depends on tgt/ctr}} \underbrace{(\b s - \b       c)^m}_{\text{depends on src/ctr}}
+ \]
+ \end{frame}
+
+\begin{frame}[fragile]{Taylor Series based FMM}
+
+ Some Expansion Types:
+ \begin{itemize}
+     \item Expansions using separation of angular variables (Spherical harmonics, Fourier-bessel based)
+     \item Linear Algebra (Eg: Kernel-independent FMM)
+     \item Taylor series based (Cartesian) expansions
+ \end{itemize}
+
+\renewcommand{\arraystretch}{2}
+
+ \begin{table}[]
+ \scriptsize
+ \begin{tabular}{l|l}
+     Pros & Cons \\ \hline
+     - Easily tractable symbolically & - Expansions $\mathrm{O}(p^3)$ compared to $\mathrm{O}(p^2)$ \\
+     \hspace{1 mm} for any kernel & - Translations $\mathrm{O}(p^6)$ compared to $\mathrm{O}(p^2\log(p))$ \\
+    & - Stability issues \\
+ \end{tabular}
+     \caption{Pros and cons of Taylor series based expansions}
+ \end{table}
+
+\end{frame}
+\begin{frame}[fragile]{Taylor Series based FMM}
+  Goals:
+    \begin{itemize}
+        \item Find a way to reduce Taylor series cost.
+        \item Use the Taylor series to automate FMM for "any" kernel
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Compressed Multipole Expansion}
+ When $\psi$ satisfies the Helmholtz equation,
+ \[
+  \psi_{x x} + \psi_{y y} + \kappa^2 \psi = 0.
  \]
 
- Recall, 
+ Recall
  \[
- \psi(\b t, \b s) = \sum_{|m| \le p} \underbrace{\frac{D_{\b s}^m \psi(\b t, \b s)\Bigr|_{\b s = \b c}}{m!}}_{\text{depends on tgt/ctr}} \underbrace{(\b s - \b c)^m}_{\text{depends on src/ctr}}
+ \psi(\b t, \b s) = \sum_{|m| \le p} \underbrace{\frac{D_{\b s}^m \psi(\b t, \b s)\Bigr|_{\b s = \b c}}{m!}}_{\text{depends on tgt/ctr}} \underbrace{(\b s - \b c)^m}_{\text{depends on src/ctr}}.
  \]
- From the PDE we have, 
+ From the PDE we have
  \begin{align*}
   c_1 \psi_{x x} +  c_2 \psi_{y y} + c_3 \psi 
   &= c_1 \psi_{x x} +  c_2 (-\psi_{x x} - \kappa^2 \psi) + c_3 \psi \\
@@ -364,12 +239,12 @@ and the expansion is convergent if all targets are outside the circle.
 
 \begin{frame}[fragile]{Compressed Multipole Expansion}
  
- For 2D Helmholtz equation we also have,
+ For Helmholtz equation we also have
  \[
-     \psi_{x x y y} + \psi_{y y y y}  + \kappa^2 \psi_{y y} = 0
+     \psi_{x x y y} + \psi_{y y y y}  + \kappa^2 \psi_{y y} = 0,
  \]
  \[
-     \psi_{x x x x} + \psi_{x x y y}  + \kappa^2 \psi_{x x} = 0
+     \psi_{x x x x} + \psi_{x x y y}  + \kappa^2 \psi_{x x} = 0.
  \]
 \begin{center}
 \begin{tikzpicture}[scale=0.5]
@@ -437,35 +312,63 @@ and the expansion is convergent if all targets are outside the circle.
 \end{tikzpicture}
 \end{center}
 
-All the coefficients represented by red dots get zeroed.
+All the coefficients represented by red dots get lumped into "green" coefficients.
 
-Multipole expansion coefficients go from $\mathcal{O}(p^d)$ to $\mathcal{O}(p^{d-1})$.
+Count of expansion coefficients goes from $\mathcal{O}(p^d)$ to $\mathcal{O}(p^{d-1})$.
 
 \end{frame}
-
-
 
 
 
 \begin{frame}[fragile]{Compressed Local Expansion}
 
-Recall,
+Recall
 \[
  \psi(\b t, \b s) = \sum_{|m| \le p} \underbrace{\frac{D_{\b t}^m \psi(\b t, \b s)\Bigr|_{\b t = \b c}}{m!}}_{\text{depends on src/ctr}} \underbrace{(\b t - \b c)^m}_{\text{depends on tgt/ctr}}
 \]
 
-Note that the coefficients are derivative terms and using the PDE, we can find
-linear combinations for the coefficients.
-
 Out of $\mathcal{O}(p^d)$ coefficients, only $\mathcal{O}(p^{d-1})$ are independent.
 
-This makes the number of terms of a local expansion to be $\mathcal{O}(p^{d-1})$.
+This makes the number of terms of a local expansion $\mathcal{O}(p^{d-1})$.
  
 \end{frame}
 
+\begin{frame}[fragile]{Calculating derivatives for Local Expansion}
 
-\begin{frame}[fragile]{Compressed Multipole Translation}
-Let $\alpha_k = (\b s-\b c_1)^k $ be already computed multipole coefficients around center $\b c_1$. Then,
+Tausch (2003) proposes an algorithm which has an amortized $\mathcal{O}(p)$ time
+assuming that the Green's function is radially symmetric.
+
+We found several formulae to calculate these in amortized $\mathcal{O}(1)$ time.
+
+For Laplace 3D
+\tiny
+\begin{align*}
+    r^2 \frac{\partial^{n+m+l}}{\partial x^{n} y^m z^l} \left(\frac{1}{r}\right) =
+              & -(2n-1)x \frac{\partial^{n+m-1}}{\partial x^{n-1} y^m z^l} \left(\frac{1}{r}\right)
+              - (n-1)^2 \frac{\partial^{n+m-2}}{\partial x^{n-2}y^m z^l} \left(\frac{1}{r}\right)
+              - 2m y \frac{\partial^{n+m-1}}{\partial x^{n} y^{m-1} z^l} \left(\frac{1}{r}\right) \\
+              &- m(m-1) \frac{\partial^{n+m-2}}{\partial x^{n} y^{m-2} z^l} \left(\frac{1}{r}\right)
+              - 2l z \frac{\partial^{n+m-1}}{\partial x^{n} y^{m} z^{l-1}} \left(\frac{1}{r}\right)
+              - l(l-1) \frac{\partial^{n+m-2}}{\partial x^{n} y^{m} z^{l-2}} \left(\frac{1}{r}\right)
+\end{align*}.
+
+\normalsize
+For Biharmonic 2D,
+\tiny
+\begin{align*}
+    r^2 \frac{\partial^{n+m}}{\partial x^{n}y^m} \left(r^2 \log(r)\right) = &
+               -2(n-2)x \frac{\partial^{n+m-1}}{\partial x^{n-1}y^m} \left(r^2 \log(r)\right)
+               -(n-1)(n-4) \frac{\partial^{n+m-2}}{\partial x^{n-2}y^m} \left(r^2 \log(r)\right) \\
+               &-2 m y\frac{\partial^{n+m-1}}{\partial x^{n}y^{m-1}} \left(r^2 \log(r)\right)
+               -m(m-1) \frac{\partial^{n+m-2}}{\partial x^{n}y^{m-2}} \left(r^2 \log(r)\right).
+\end{align*}
+\normalsize
+This reduces the cost of P2L from $\mathcal{O}(p^d)$ to $\mathcal{O}(p^{d-1})$.
+
+\end{frame}
+
+\begin{frame}[fragile]{Naive Multipole Translation}
+Let $c_1$ be the old center and $c$ be the new center. Then,
 \begin{align*}
 (\b s-\b c)^k &= \left(\left(\b s-\b c_1\right) + \left(\b c_1-\b c\right)\right)^k   \\
 &= \sum_{l \le k} \binom{k}{l}\left(\b s-\b c_1\right)^l \left(\b c_1-\b c\right)^{k-l} \\
@@ -545,9 +448,9 @@ Cost: $\mathcal{O}(p^{2d})$.
 
 \draw [dashed,fill=gray] (1.3,0.7) node[fill=green,circle,anchor=center,scale=0.4]{};
 \draw [dashed,fill=gray] (2.2,0.3) node[fill=green,circle,anchor=center,scale=0.4]{};
-\node[color=blue] at (1.7,1.4) {Q};
-\node[color=orange] at (2.6,0.7) {R};
-\draw[->] (2, 6)-- node[right,scale=0.6]{\begin{tabular}{l} Error = $\mathcal{O}(h^{p+1})$ \end{tabular}} (2,3);
+\node[color=blue] at (1.7,1.4) {$P'_{a}$};
+\node[color=orange] at (2.6,0.7) {$P'_{b}$};
+    \draw[->] (2, 6)-- node[right,scale=0.6]{\begin{tabular}{l} $Error = \begin{cases} 0 & \text{Laplace, Biharmonic} \\  \mathcal{O}(h^{p+1}) & \text{else} \end{cases}$ \end{tabular}} (2,3);
 %\draw [dashed,fill=gray] (1.8,1.0) node[fill=blue,circle,anchor=center,scale=0.4,label=north:$T'_{a+l}$]{};
 %\draw [dashed,fill=gray] (2.7,0.6) node[fill=orange,circle,anchor=center,scale=0.4,label=north:$T''_{b+l}$]{};
 %\draw[->] (1.3,0.7)--(1.7,0.9) node[above]{};
@@ -556,9 +459,9 @@ Cost: $\mathcal{O}(p^{2d})$.
 
 \end{frame}
 
-\begin{frame}[fragile]{Compressed Multipole Translation}
+\begin{frame}[fragile]{Faster Compressed Multipole Translation}
 \begin{center}
-\begin{tikzpicture}[scale=0.5]
+\begin{tikzpicture}[scale=0.4]
 \draw[->] (0,0)--(5,0) node[right]{$x$};
 \draw[->] (0,0)--(0,5) node[above]{$y$};
 \draw[ultra thick] (0,0) node[anchor=north]{}
@@ -566,41 +469,57 @@ Cost: $\mathcal{O}(p^{2d})$.
   -- (0,4) node[anchor=south]{}
   -- cycle;
   
-\foreach \Point in { (0, 0), (0.5, 0), (1.0, 0), (1.5, 0), (2.0, 0), (2.5, 0), (3.0, 0), (3.5, 0), (4.0, 0), (0.5, 0), (0, 0.5), (0.5, 0.5), (1.0, 0.5), (1.5, 0.5), (2.0, 0.5), (2.5, 0.5), (3.0, 0.5), (3.5, 0.5)}{
+\foreach \Point in { (0, 0), (1.0, 0), (2.0, 0), (3.0, 0), (4.0, 0)}{
     \draw \Point node[anchor=center,fill=green,circle,scale=0.5] {};
 }
 
-\foreach \Point in { (1.0, 1.0) }{
+\foreach \Point in { (0.0, 1.0), (0.0, 2.0), (0.0, 3.0), (0.0, 4.0), (1.0, 1.0), (1.0, 2.0), (1.0, 3.0), (2.0, 1.0), (2.0, 2.0), (3.0, 1.0) }{
     \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
 }
-\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,0.8);
+
 %\draw[->, thick] (-0.2,0.2) to node[right] {} (-0.2, 0.2);
 \path (0, 0) edge [loop left] node {} (0, 0);
-\draw[->] (0,-0.2) to [bend right=45] node[right] {} (0.5,-0.2);
 \draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,-0.2);
-\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1.5,-0.2);
 \draw[->] (0,-0.2) to [bend right=45] node[right] {} (2,-0.2);
-\draw[->] (0,-0.2) to [bend right=45] node[right] {} (2.5,-0.2);
 \draw[->] (0,-0.2) to [bend right=45] node[right] {} (3,-0.2);
-\draw[->] (0,-0.2) to [bend right=45] node[right] {} (3.5,-0.2);
 \draw[->] (0,-0.2) to [bend right=45] node[right] {} (4,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (1,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (1.5,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (2,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (2.5,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (3,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (3.5,-0.2);
-\draw[->] (0.5,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (0,0.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,0.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (2,0.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (3,0.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (0,1.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,1.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (2,1.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (0,2.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,2.8);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (0,3.8);
 
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (0.5,0.3);
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (1.0,0.3);
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (1.5,0.3);
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (2.0,0.3);
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (2.5,0.3);
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (3.0,0.3);
-\draw[->] (0,0.3) to [bend right=45] node[right] {} (3.5,0.3);
+\path (1, 0) edge [loop below] node {} (1, 0);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (2,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (1,0.8);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (2,0.8);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (3,0.8);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (1,1.8);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (2,1.8);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (1,2.8);
+
+\path (2, 0) edge [loop below] node {} (2, 0);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (2,0.8);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (3,0.8);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (2,1.8);
 \node[below,scale=0.8] at (2,-1) {Source coefficients};
 
+\path (3, 0) edge [loop below] node {} (3, 0);
+\draw[->] (3,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (3,-0.2) to [bend right=45] node[right] {} (3,0.8);
+
+\path (4, 0) edge [loop below] node {} (4, 0);
+
+\draw[->] (5, 2)-- node[above,scale=0.6]{\large Translation ($p^{2d-1}$)} (9, 2);
 \draw[->] (10,0)--(15,0) node[right]{$x$};
 \draw[->] (10,0)--(10,5) node[above]{$y$};
 \draw[ultra thick] (10,0) node[anchor=north]{}
@@ -608,65 +527,335 @@ Cost: $\mathcal{O}(p^{2d})$.
   -- (10,4) node[anchor=south]{}
   -- cycle;
   
-\foreach \Point in { (10, 0), (10.5, 0), (11.0, 0), (11.5, 0), (12.0, 0), (12.5, 0), (13.0, 0), (13.5, 0), (14.0, 0), (10.5, 0), (10, 0.5), (10.5, 0.5), (11.0, 0.5), (11.5, 0.5), (12.0, 0.5), (12.5, 0.5), (13.0, 0.5), (13.5, 0.5)}{
+\foreach \Point in { (10, 0), (11.0, 0), (12.0, 0), (13.0, 0), (14.0, 0)}{
     \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
 }
 
-\foreach \Point in { (10.0, 1.0), (10.0, 1.5), (10.0, 2.0), (10.0, 2.5), (10.0, 3.0), (10.0, 3.5), (10.0, 4.0), (10.5, 1.0), (10.5, 1.5), (10.5, 2.0), (10.5, 2.5), (10.5, 3.0), (10.5, 3.5), (11.0, 1.0), (11.0, 1.5), (11.0, 2.0), (11.0, 2.5), (11.0, 3.0), (11.5, 1.0), (11.5, 1.5), (11.5, 2.0), (11.5, 2.5), (12.0, 1.0), (12.0, 1.5), (12.0, 2.0), (12.5, 1.0), (12.5, 1.5), (13.0, 1.0) }{
+\foreach \Point in { (10.0, 1.0), (10.0, 2.0), (10.0, 3.0), (10.0, 4.0), (11.0, 1.0), (11.0, 2.0), (11.0, 3.0), (12.0, 1.0), (12.0, 2.0), (13.0, 1.0) }{
     \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
 }
 
 \node[below,scale=0.8] at (12,-1) {Target coefficients};
+\end{tikzpicture}
+\end{center}
+\begin{center}
+\begin{tikzpicture}[scale=0.4]
+\draw[->] (0,0)--(5,0) node[right]{$x$};
+\draw[->] (0,0)--(0,5) node[above]{$y$};
+\draw[ultra thick] (0,0) node[anchor=north]{}
+  -- (4,0) node[anchor=north]{}
+  -- (0,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (0, 0), (1.0, 0), (2.0, 0), (3.0, 0), (4.0, 0)}{
+    \draw \Point node[anchor=center,fill=green,circle,scale=0.5] {};
+}
+
+
+%\draw[->, thick] (-0.2,0.2) to node[right] {} (-0.2, 0.2);
+\path (0, 0) edge [loop left] node {} (0, 0);
+\path (1, 0) edge [loop below] node {} (1, 0);
+\path (2, 0) edge [loop below] node {} (2, 0);
+\path (3, 0) edge [loop below] node {} (3, 0);
+\path (4, 0) edge [loop below] node {} (4, 0);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (2,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (2,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (3,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+
+\node[below,scale=0.8] at (2,-1) {Source coefficients};
+\draw[->] (3, 2)-- node[above,scale=0.6]{\large Translation ($p^{d}$)} (7, 2);
+
+\draw[->] (8,0)--(13,0) node[right]{$x$};
+\draw[->] (8,0)--(8,5) node[above]{$y$};
+\draw[ultra thick] (8,0) node[anchor=north]{}
+  -- (12,0) node[anchor=north]{}
+  -- (8,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (8, 0), (9.0, 0), (10.0, 0), (11.0, 0), (12.0, 0)}{
+    \draw \Point node[anchor=center,fill=orange,circle,scale=0.5] {};
+}
+
+\foreach \Point in { (8.0, 1.0), (8.0, 2.0), (8.0, 3.0), (8.0, 4.0), (9.0, 1.0), (9.0, 2.0), (9.0, 3.0), (10.0, 1.0), (10.0, 2.0), (11.0, 1.0) }{
+    \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
+}
+
+\path (8, 0) edge [loop left] node {} (8, 0);
+\path (9, 0) edge [loop below] node {} (9, 0);
+\path (10, 0) edge [loop below] node {} (10, 0);
+\path (11, 0) edge [loop below] node {} (11, 0);
+\path (12, 0) edge [loop below] node {} (12, 0);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,0.8);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,1.8);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,2.8);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,3.8);
+\draw[->] (9,-0.2) to [bend right=45] node[right] {} (9,0.8);
+\draw[->] (9,-0.2) to [bend right=45] node[right] {} (9,1.8);
+\draw[->] (9,-0.2) to [bend right=45] node[right] {} (9,2.8);
+\draw[->] (10,-0.2) to [bend right=45] node[right] {} (10,0.8);
+\draw[->] (10,-0.2) to [bend right=45] node[right] {} (10,1.8);
+\draw[->] (11,-0.2) to [bend right=45] node[right] {} (11,0.8);
+
+\node[below,scale=0.8] at (10,-1) {Intermediate coefficients};
+\draw[->] (11, 2)-- node[above,scale=0.6]{\large Translation ($p^{d}$)} (15, 2);
+\draw[->] (16,0)--(21,0) node[right]{$x$};
+\draw[->] (16,0)--(16,5) node[above]{$y$};
+\draw[ultra thick] (16,0) node[anchor=north]{}
+  -- (20,0) node[anchor=north]{}
+  -- (16,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (16, 0), (17.0, 0), (18.0, 0), (19.0, 0), (20.0, 0)}{
+    \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
+}
+
+\foreach \Point in { (16.0, 1.0), (16.0, 2.0), (16.0, 3.0), (16.0, 4.0), (17.0, 1.0), (17.0, 2.0), (17.0, 3.0), (18.0, 1.0), (18.0, 2.0), (19.0, 1.0) }{
+    \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
+}
+
+\node[below,scale=0.8] at (18,-1) {Target coefficients};
 
 \end{tikzpicture}
 \end{center}
 
-All the coefficients represented by red dots get zeroed.
+Note: For local to local translation, reverse all arrows.
 
-Multipole expansion coefficients go from $\mathcal{O}(p^d)$ to $\mathcal{O}(p^{d-1})$.
+\end{frame}
+\begin{frame}[fragile]{Faster Compressed Multipole Translation}
+\begin{center}
+\begin{tikzpicture}[scale=0.4]
+\draw[->] (0,0)--(5,0) node[right]{$x$};
+\draw[->] (0,0)--(0,5) node[above]{$y$};
+\draw[ultra thick] (0,0) node[anchor=north]{}
+  -- (4,0) node[anchor=north]{}
+  -- (0,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (0, 0), (1.0, 0), (2.0, 0), (3.0, 0), (4.0, 0), (0, 1.0), (0, 2.0), (0, 3.0), (0, 4.0)}{
+    \draw \Point node[anchor=center,fill=green,circle,scale=0.5] {};
+}
+\foreach \Point in { (1.0, 1.0), (1.0, 2.0), (1.0, 3.0), (2.0, 1.0), (2.0, 2.0), (3.0, 1.0) }{
+    \draw \Point node[anchor=center,fill=orange,circle,scale=0.5] {};
+}
+
+
+%\draw[->, thick] (-0.2,0.2) to node[right] {} (-0.2, 0.2);
+\path (0, 0) edge [loop left] node {} (0, 0);
+\path (1, 0) edge [loop below] node {} (1, 0);
+\path (2, 0) edge [loop below] node {} (2, 0);
+\path (3, 0) edge [loop below] node {} (3, 0);
+\path (4, 0) edge [loop below] node {} (4, 0);
+\path (0, 1) edge [loop left] node {} (0, 1);
+\path (0, 2) edge [loop left] node {} (0, 2);
+\path (0, 3) edge [loop left] node {} (0, 3);
+\path (0, 4) edge [loop left] node {} (0, 4);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (1,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (2,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (0,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (2,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (1,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (3,-0.2);
+\draw[->] (2,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+\draw[->] (3,-0.2) to [bend right=45] node[right] {} (4,-0.2);
+
+\draw[->] (0,0.8) to [bend right=45] node[right] {} (1,0.8);
+\draw[->] (0,0.8) to [bend right=45] node[right] {} (2,0.8);
+\draw[->] (0,0.8) to [bend right=45] node[right] {} (3,0.8);
+
+\draw[->] (0,1.8) to [bend right=45] node[right] {} (1,1.8);
+\draw[->] (0,1.8) to [bend right=45] node[right] {} (2,1.8);
+\draw[->] (0,2.8) to [bend right=45] node[right] {} (1,2.8);
+\node[below,scale=0.8] at (2,-1) {Source coefficients};
+\draw[->] (3, 2)-- node[above,scale=0.6]{\large Translation ($p^{d}$)} (7, 2);
+
+\draw[->] (8,0)--(13,0) node[right]{$x$};
+\draw[->] (8,0)--(8,5) node[above]{$y$};
+\draw[ultra thick] (8,0) node[anchor=north]{}
+  -- (12,0) node[anchor=north]{}
+  -- (8,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (8, 0), (9.0, 0), (10.0, 0), (11.0, 0), (12.0, 0)}{
+    \draw \Point node[anchor=center,fill=orange,circle,scale=0.5] {};
+}
+
+\foreach \Point in { (8.0, 1.0), (8.0, 2.0), (8.0, 3.0), (8.0, 4.0), (9.0, 1.0), (9.0, 2.0), (9.0, 3.0), (10.0, 1.0), (10.0, 2.0), (11.0, 1.0) }{
+    \draw \Point node[anchor=center,fill=orange,circle,scale=0.5] {};
+}
+
+\path (8, 0) edge [loop left] node {} (8, 0);
+\path (8, 1) edge [loop left] node {} (8, 1);
+\path (8, 2) edge [loop left] node {} (8, 2);
+\path (8, 3) edge [loop left] node {} (8, 3);
+\path (8, 4) edge [loop left] node {} (8, 4);
+\path (9, 0) edge [loop below] node {} (9, 0);
+\path (9, 1) edge [loop below] node {} (9, 1);
+\path (9, 2) edge [loop below] node {} (9, 2);
+\path (9, 3) edge [loop below] node {} (9, 3);
+\path (10, 0) edge [loop below] node {} (10, 0);
+\path (10, 1) edge [loop below] node {} (10, 1);
+\path (10, 2) edge [loop below] node {} (10, 2);
+\path (11, 0) edge [loop below] node {} (11, 0);
+\path (11, 1) edge [loop below] node {} (11, 1);
+\path (12, 0) edge [loop below] node {} (12, 0);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,0.8);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,1.8);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,2.8);
+\draw[->] (8,-0.2) to [bend right=45] node[right] {} (8,3.8);
+\draw[->] (9,-0.2) to [bend right=45] node[right] {} (9,0.8);
+\draw[->] (9,-0.2) to [bend right=45] node[right] {} (9,1.8);
+\draw[->] (9,-0.2) to [bend right=45] node[right] {} (9,2.8);
+\draw[->] (10,-0.2) to [bend right=45] node[right] {} (10,0.8);
+\draw[->] (10,-0.2) to [bend right=45] node[right] {} (10,1.8);
+\draw[->] (11,-0.2) to [bend right=45] node[right] {} (11,0.8);
+
+\draw[->] (8,0.8) to [bend right=45] node[right] {} (8,1.8);
+\draw[->] (8,0.8) to [bend right=45] node[right] {} (8,2.8);
+\draw[->] (8,0.8) to [bend right=45] node[right] {} (8,3.8);
+\draw[->] (9,0.8) to [bend right=45] node[right] {} (9,1.8);
+\draw[->] (9,0.8) to [bend right=45] node[right] {} (9,2.8);
+\draw[->] (10,0.8) to [bend right=45] node[right] {} (10,1.8);
+\node[below,scale=0.8] at (10,-1) {Intermediate coefficients};
+\draw[->] (11, 2)-- node[above,scale=0.6]{\large Translation ($p^{d+1}$)} (15, 2);
+\draw[->] (16,0)--(21,0) node[right]{$x$};
+\draw[->] (16,0)--(16,5) node[above]{$y$};
+\draw[ultra thick] (16,0) node[anchor=north]{}
+  -- (20,0) node[anchor=north]{}
+  -- (16,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (16, 0), (17.0, 0), (18.0, 0), (19.0, 0), (20.0, 0)}{
+    \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
+}
+
+\foreach \Point in { (16.0, 1.0), (16.0, 2.0), (16.0, 3.0), (16.0, 4.0), (17.0, 1.0), (17.0, 2.0), (17.0, 3.0), (18.0, 1.0), (18.0, 2.0), (19.0, 1.0) }{
+    \draw \Point node[anchor=center,fill=blue,circle,scale=0.5] {};
+}
+
+\node[below,scale=0.8] at (18,-1) {Target coefficients};
+
+\end{tikzpicture}
+\end{center}
+\pause
+Divide the problem into 2 subproblems to keep the cost down to $\mathcal{O}(p^d)$.
+\begin{center}
+\begin{tikzpicture}[scale=0.4]
+\draw[->] (0,0)--(5,0) node[right]{$x$};
+\draw[->] (0,0)--(0,5) node[above]{$y$};
+\draw[ultra thick] (0,0) node[anchor=north]{}
+  -- (4,0) node[anchor=north]{}
+  -- (0,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (0, 0), (1.0, 0), (2.0, 0), (3.0, 0), (4.0, 0)}{
+    \draw \Point node[anchor=center,fill=green,circle,scale=0.5] {};
+}
+\end{tikzpicture}
+\begin{tikzpicture}[scale=0.4]
+\draw[->] (0,0)--(5,0) node[right]{$x$};
+\draw[->] (0,0)--(0,5) node[above]{$y$};
+\draw[ultra thick] (0,0) node[anchor=north]{}
+  -- (4,0) node[anchor=north]{}
+  -- (0,4) node[anchor=south]{}
+  -- cycle;
+  
+\foreach \Point in { (0, 1.0), (0, 2.0), (0, 3.0), (0, 4.0)}{
+    \draw \Point node[anchor=center,fill=green,circle,scale=0.5] {};
+}
+\end{tikzpicture}
+\end{center}
+
 
 \end{frame}
 
-\begin{frame}[fragile]{Compressed Multipole and Taylor Expansions}
- 
+\begin{frame}[fragile]{Compressed Multipole to Local Translation}
+From multipole expansion, we get,
+\[
+ \psi(\b t, \b s) = \sum_{|m| \le k} \underbrace{\frac{D_{\b s}^m \psi(\b t, \b s)\Bigr|_{\b s = \b c}}{m!}}_{\text{depends on tgt/ctr}} \underbrace{(\b s - \b c)^m}_{\text{depends on src/ctr}}
+\]
+To translate this multipole expansion to a local expansion, we need to get
+the derivatives of the above expression and evalaute at new center.
+
+Cost: $\mathcal{O}(p^{2d-2})$.
+
+\end{frame}
+
+\begin{frame}[fragile]{Compressed Multipole to Local Translation}
+
+Multipole to local translation matrix is a block Toeplitz matrix of smaller Toeplitz matrices.
+
+\begin{center}
+\begin{figure}
+\includegraphics[scale=0.3]{figures/m2l_imshow.pdf}
+\pause
+\includegraphics[scale=0.3]{figures/m2l_imshow_2.pdf}
+\end{figure}
+\end{center}
+
+Use an FFT to do the translation similar to Greengard (1988).
+
+Cost depends on number of dummy rows:
+ \begin{itemize}
+     \item $\mathcal{O}(p^{d-1}\log(p))$ for elliptic PDEs
+     \item $\mathcal{O}(p^{d}\log(p))$ for other PDEs
+ \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Time complexities}
+
+\renewcommand{\arraystretch}{2} 
  \begin{table}[]
  \scriptsize
- \begin{tabular}{|L|c|c|c|c|c|c|c|}
- \hline                          & P2L      & P2M   & M2M          & M2L            & L2L       & L2P     & M2P \\ \hline
- Taylor Series                   & $p^3$    & $p^3$ & $p^{6}$      & $p^{6}$        & $p^{6}$   & $p^{3}$ & $p^{3}$\\ \hline
- Improved Taylor Series          & $p^3$    & $p^3$ & $p^{4}$      & $p^{3}\log(p)$ & $p^{4}$   & $p^{3}$ & $p^{3}$\\ \hline
- Compressed Taylor Series        & $p^{2}$  & $p^3$ & $p^{3}$      & $p^2\log(p)$   & $p^{3}$   & $p^{3}$ & $p^{2}$\\ \hline
- Spherical Harmonic Series       & $p^2$    & $p^2$ & $p^2\log(p)$ & $p^2\log(p)$   & $p^2\log(p)$   & $p^2$   & $p^2$\\ \hline
+ \begin{tabular}{|m{12em}|c|c|c|c|c|c|c|}
+ \hline                          & P2L/M2P      & P2M/L2P   & M2M          & M2L            & L2L      \\ \hline
+ Taylor Series                   & \color{NavyBlue} $\b  p^3$    &\color{NavyBlue} $\b p^3$ &\color{NavyBlue} $\b p^{6}$      &\color{NavyBlue} $\b p^{6}$        &\color{NavyBlue} $\b p^{6}$   \\ \hline
+ Improved Taylor Series          & \color{NavyBlue} $\b  p^3$    &\color{NavyBlue} $\b p^3$ &\color{NavyBlue} $\b p^{4}$      &\color{NavyBlue} $\b p^{3} \log( \b p)$        &\color{NavyBlue} $\b p^{4}$   \\ \hline
+     Compressed Taylor Series without fast derivatives          &\color{NavyBlue} $\b p^3$    &\color{NavyBlue} $\b p^3$ &\color{NavyBlue} $\b p^{3}$      &\color{Green} $\b p^{2} \log(\b p)$ & \color{NavyBlue}$\b p^{3}$   \\ \hline
+ \textbf{Compressed Taylor Series with fast derivatives}
+                                 &\color{Green} $\b p^{2}$  & \color{NavyBlue} $\b p^3$ &\color{NavyBlue} $\b p^{3}$      &\color{Green} $\b p^2 \log(\b p)$   &\color{NavyBlue} $\b p^{3}$   \\ \hline
+ Spherical Harmonic Series       &\color{Green} $\b p^2$    &\color{Green} $\b p^2$ &\color{Green} $\b p^2\log(\b p)$ &\color{Green} $\b p^2\log(\b p)$   &\color{Green} $\b p^2\log(\b p)$   \\ \hline
  \end{tabular}
    \caption{Time complexities for expansions, translations and evaluations} \label{tab:compressed}
  \end{table}
-
-All operations are exact except for M2M in Compressed Taylor.
-Point-shoot method uses Spherical Harmonics for expansion instead of a Taylor series. 
-
-Here P is Point, L is Local expansion and M is Multipole expansion.
+All operations are exact except for M2M in Compressed Taylor and M2L operations with FFT.
 
 \end{frame}
 
-\begin{frame}[fragile]{Kernel Independence}
- Point-Shoot method is Laplace specific and requires significant software engineering time for one specific problem.
- 
+\begin{frame}[fragile]{Code generation}
  With Compressed Taylor generating code for Stokes
  \begin{align*} \mu \nabla^2 \mathbf{u} -\boldsymbol{\nabla}p + \mathbf{f} &= \boldsymbol{0} \\
  \boldsymbol{\nabla}\cdot\mathbf{u}&= 0 \end{align*}
 
- is translated to,
+ is done simply by giving the PDE as:
  
  \begin{minted}{python}
-    w = make_pde_syms(self.dim, self.dim+1)
-    mu = sym.Symbol(self.viscosity_mu_name)
-    u = w[:self.dim]
+    w = make_pde_syms(ndims=3, neqs=4)
+    mu = sym.Symbol("mu")
+    u = w[:3]
     p = w[-1]
-    pdes = (mu * u.laplacian() - p.grad() | u.div())
+    pdes = PDE(mu * laplacian(u) - grad(p), div(u))
  \end{minted}
+ which generates code for the expansion, translations and evaluations.
 
 \end{frame}
 
+\begin{frame}[fragile]{Code generation}
+\begin{figure}
+\includegraphics[scale=0.3]{figures/codegen-time-stokes-3d.pdf}
+\includegraphics[scale=0.3]{figures/codegen-time-helmholtz-3d.pdf}
+\includegraphics[scale=0.3]{figures/codegen-time-biharmonic-3d.pdf}
+\includegraphics[scale=0.3]{figures/codegen-time-laplace-3d.pdf}
+\end{figure}
+\end{frame}
 \begin{frame}[fragile]{Results - Error M2M}
 \begin{figure}
 \includegraphics[scale=0.3]{figures/accuracy-stokes-3d.pdf}
@@ -685,10 +874,12 @@ Here P is Point, L is Local expansion and M is Multipole expansion.
 \end{figure}
 \end{frame}
 
-\begin{frame}[fragile]{Conclusions}
+\begin{frame}[fragile]{Summary}
 \begin{itemize}
- \item Kernel independent method. Only needs the PDE and the Green's function for the PDE.
- \item Asymptotically better than full Taylor Series in,
+ \item Kernel-generic method for elliptic constant coefficient linear PDEs
+     with non-oscillatory kernels (for now).
+ \item Only needs the PDE and the Green's function for the PDE.
+ \item Asymptotically better than full Taylor Series in
     \begin{itemize}
      \item Number of FLOPs
      \item Storage
@@ -696,6 +887,11 @@ Here P is Point, L is Local expansion and M is Multipole expansion.
   \item Next goal: A fast Stokes solver on a GPU.
 \end{itemize}
 
+Ackowledgements: 
+    \begin{itemize}
+        \item NSF grants 19-11019 and 16-54756
+        \item SIAM travel grant
+    \end{itemize}
 \end{frame}
 
 \end{document}
